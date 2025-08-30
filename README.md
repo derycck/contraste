@@ -2,7 +2,7 @@
 
 ## O dilema do modo escuro: como uma análise de dados revelou as cores que funcionam em qualquer lugar.
 
-Imagine a cena: você, dev front-end ou web designer, escolhe a cor primária perfeita para um projeto. Um azul profundo, `#0000FF`. Fica incrível nos botões, links e gráficos sobre o fundo branco. Missão cumprida. 🎨
+Imagine a cena: você, dev front-end ou web designer, escolhe a cor primária perfeita para um projeto. Um azul profundo, `(#0000FF, hsl(240,100,50), rgb(0, 0, 255)`. Fica incrível nos botões, links e gráficos sobre o fundo branco. Missão cumprida. 🎨
 
 Até que chega a hora de implementar o modo escuro. E aquele azul profundo... desaparece. Contra o fundo preto, ele se torna quase ilegível, forçando você a criar uma variável de cor totalmente diferente só para o tema escuro.
 
