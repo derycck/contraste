@@ -45,7 +45,8 @@ Essa foi a chave! Usei esse valor como uma janela de tolerância. A nova estrat�
 Essa abordagem suavizou drasticamente as variações de brilho, resultando em uma paleta de cores muito mais harmônica, sem sacrificar a legibilidade em nenhuma das matizes.
 
 ![](./img/best_contrast_hue_HSL.png)
-Também gerei visualização dos parâmetros em notação HSL. Nela é possível visualizar com ainda mais claridade que cores quentes exigem menor luminosidade e cores frias exigem maior luminosidade para alcançar o contraste ideal.
+
+Também gerei visualização dos parâmetros em notação HSL. Nela é possível visualizar com ainda mais clareza que cores quentes exigem menor luminosidade e cores frias exigem maior luminosidade para alcançar o contraste ideal.
 
 ### A Paleta de Contraste Ideal 🏆
 
