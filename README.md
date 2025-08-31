@@ -101,7 +101,7 @@ Este estudo mostra que, em vez de criar paletas duplicadas, podemos encontrar um
 
 Acesse o notebook [contraste.ipynb](./contraste.ipynb) para acompanhar toda a jornada de descoberta das cores que funcionam em qualquer lugar. 😁
 
-![](https://i.imgur.com/T5tSpgY.png)
+![](./img/results.png)
 
 Para facilitar a reutilização, segue a paleta de 36 cores ideais em 4 notações:
 
