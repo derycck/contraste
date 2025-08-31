@@ -6,7 +6,7 @@ Imagine a cena: você, dev front-end ou web designer, escolhe a cor primária pe
 
 Até que chega a hora de implementar o modo escuro. E aquele azul profundo... desaparece. Contra o fundo preto, ele se torna quase ilegível, forçando você a criar uma variável de cor totalmente diferente só para o tema escuro.
 
-Esse é um desafio clássico de design e acessibilidade. Uma mesma cor raramente possui um bom contraste tanto em fundos claros quanto escuros. Isso não afeta apenas a estética, mas também a legibilidade e a conformidade com as diretrizes da WCAG (Web Content Accessibility Guidelines).
+Esse é um desafio clássico de design e acessibilidade. Uma mesma cor raramente possui um bom contraste tanto em fundos claros quanto escuros. Isso não afeta apenas a estética, mas também a legibilidade e a conformidade com as [diretrizes](https://www.w3.org/TR/WCAG21/) da WCAG (Web Content Accessibility Guidelines).
 
 > Nota: Essa legibilidade pode ser quantificada por uma métrica chamada **taxa de contraste**. A WCAG recomenda uma taxa mínima de `4.5:1` para texto normal. Uma implementação online dessa métrica pode ser encontrada [aqui](https://coolors.co/contrast-checker/).
 
@@ -16,9 +16,41 @@ Meu problema pode parecer bobo, mas eu buscava o melhor contraste para as cores 
 
 Para resolver esse problema, decidi mergulhar em análise de dados para encontrar uma solução sistemática. A pergunta era simples: **qual é o tom ideal de cada cor essencial para maximizar a legibilidade em fundos pretos e brancos simultaneamente?**
 
+### O contraste é uma métrica verificável
+
+Você já se pegou pensando: "Acho que esse cinza claro funciona bem nesse fundo branco"? A boa notícia é que, no mundo do design acessível, a legibilidade não depende de "achismos". O contraste é uma métrica precisa, matemática e totalmente verificável.
+
+A WCAG define um cálculo claro para a **taxa de contraste**, que varia de 1:1 (cores idênticas) a 21:1 (preto e branco). Para garantir a conformidade AA, a meta para textos normais é atingir ou superar a marca de **4.5:1**. Isso transforma a acessibilidade de uma opinião subjetiva em um resultado que pode ser medido e validado.
+
+Mas como um computador "vê" o brilho da mesma forma que nossos olhos? A resposta está na **luminância relativa**. O olho humano não percebe o brilho de forma linear; somos muito mais sensíveis ao verde do que ao vermelho ou azul. Por isso, a fórmula da WCAG não trata R, G e B como iguais. Ela aplica pesos baseados na fisiologia do olho (padrão ITU-R BT.709), que são aproximadamente:
+- 🟢 **71%** para o canal Verde
+- 🔴 **21%** para o canal Vermelho
+- 🔵 **7%** para o canal Azul
+
+Essa ponderação garante que o cálculo reflita a percepção humana, explicando por que um verde puro `(0, 255, 0)` parece muito mais "brilhante" que um azul puro `(0, 0, 255)`.
+
+Antes de ponderar os canais R, G e B, há um passo crucial chamado **linearização**. Os valores sRGB que usamos (de 0 a 255) não representam a intensidade da luz de forma linear. Eles são comprimidos por uma **correção de gama (gamma correction)**, que se alinha com a percepção humana de brilho. Para realizar cálculos de contraste precisos, a fórmula da WCAG primeiro "desfaz" essa compressão, convertendo cada canal de cor para uma escala linear, chamada de luminância.
+
+O processo para calcular essa luminância de cada canal de cor é o seguinte:
+- O valor normalizado de cada canal é obtido dividindo o valor original por `255`;
+- Para cores muito escuras (com valor normalizado abaixo de `0.03928`), a relação é quase linear e se resolve com uma simples divisão por `12.92`;
+- Para todas as outras, uma função de potência à **2.4** é aplicada para reverter a compressão. Especificamente:
+
+`Luminância = ((valor_normalizado + 0.055) / 1.055) ** 2.4`
+
+É este cálculo que transforma um valor de cor digital RGB em uma representação fiel da intensidade da luz (luminância), informação essencial para o cálculo de contraste.
+
+Após obter a luminância de cada canal, é realizado o cálculo de luminância relativa (L) através da ponderação dos valores com base na percepção humana, como indicado anteriormente:
+
+`L = 0.2126 * R_linear + 0.7152 * G_linear + 0.0722 * B_linear`
+
+Com a luminância relativa (L) de cada cor calculada, a fórmula final da WCAG entra em ação para determinar a taxa de contraste.
+
+O cálculo é simples e elegante: `(L1 + 0.05) / (L2 + 0.05)`, onde L1 é a luminância da cor mais clara e L2 a da mais escura. O pequeno acréscimo de 0.05 é uma compensação para o brilho ambiente, evitando divisões por zero com o preto puro. No fim das contas, o que define um bom contraste não é uma escolha artística arbitrária, mas sim um cálculo verificável que garante que seu design seja legível.
+
 ### A Jornada em Busca do Equilíbrio 🕵️‍♂️
 
-O objetivo era encontrar, para cada matiz (hue) no círculo cromático, a combinação perfeita de saturação e brilho que resultasse em um nível de contraste similar contra fundo braco e fundo preto.
+O objetivo era encontrar, para cada matiz (hue) no círculo cromático, a combinação perfeita de saturação e brilho que resultasse em um nível de contraste similar contra fundo branco e fundo preto.
 
 Para isso, criei um script que iterou por milhares de variações de cores no espaço de cor **HSB (Hue, Saturation, Brightness)**, calculando para cada uma:
 1.  O contraste contra o branco.
@@ -27,22 +59,26 @@ Para isso, criei um script que iterou por milhares de variações de cores no es
 
 A primeira abordagem foi óbvia: para cada matiz, escolher a cor com a menor diferença de contraste possível. No entanto, os resultados foram instáveis.
 
-![](./img/best_contrast_HSB_v1.png)
+![](./img/best_contrast_hue_HSB1.png)
 
-Um pequeno ganho de 0.01 na taxa de contraste levava a saltos enormes nos valores de brilho e saturação entre matizes vizinhos, criando uma paleta visualmente inconsistente.
+Um pequeno ganho de 0.1 na taxa de contraste levava a saltos enormes nos valores de brilho e saturação entre matizes vizinhos, criando uma paleta visualmente inconsistente.
 
 ### A Solução: Uma Janela de Tolerância Inteligente 💡
 
-A superação da inconsistência veio de uma observação: Uma variação pouco significante na diferença de contraste poderia ser aceitável, sendo mais importante a estabilidade do brilho. Mas qual limiar de significância escolher? Decidi pela menor tolerância possível desde que fosse aplicada de forma consistente para todas as matizes. Esse valor de tolerância poderia ser encontrado pela busca da cor correspondente ao "pior cenário". A análise mostrou que o amarelo (hue 60) era a cor com a maior diferença inevitável de contraste, mesmo em seu ponto ótimo, com um valor de `0.06`.
+A superação da inconsistência veio de uma observação: Uma variação pouco significante na diferença de contraste poderia ser aceitável, sendo mais importante a estabilidade do brilho.
+
+**Mas qual limiar de significância escolher?**
+
+Decidi pela menor tolerância possível desde que fosse aplicada de forma consistente para todos os matizes. Esse valor de tolerância poderia ser encontrado pela busca da cor correspondente ao "pior cenário". A análise mostrou que o amarelo (hue 60) era a cor com a maior diferença inevitável de contraste, mesmo em seu ponto ótimo, com um valor de `0.06`.
 
 Essa foi a chave! Usei esse valor como uma janela de tolerância. A nova estratégia foi:
 
 1.  Para cada matiz, filtre todas as cores cuja diferença de contraste seja **menor ou igual a 0.06**.
 2.  Dentro desse grupo de cores "aceitáveis", selecione aquela com o **maior brilho (brightness)**.
 
-![](./img/best_contrast_HSB_v2.png)
+![](./img/best_contrast_hue_HSB2.png)
 
-Essa abordagem suavizou drasticamente as variações de brilho, resultando em uma paleta de cores muito mais harmônica, sem sacrificar a legibilidade em nenhuma das matizes.
+Essa abordagem suavizou drasticamente as variações de brilho, resultando em uma paleta de cores muito mais harmônica, sem sacrificar a legibilidade em nenhum dos matizes.
 
 ![](./img/best_contrast_hue_HSL.png)
 
@@ -59,7 +95,7 @@ Aqui estão alguns exemplos:
 * **Magenta (hue 300):** rgb(207, 0, 207) `#CF00CF hsb(300, 100, 81) hsl(300, 100, 40)`
 
 
-Essas cores garantem um contraste mínimo de `4.5:1`, atendendo aos critérios da WCAG AA para texto normal, seja em fundo um slide de apresentação branco ou preto.
+Essas cores garantem um contraste mínimo de `4.5:1`, atendendo aos critérios da WCAG AA para texto normal, seja em um slide de apresentação branco ou preto.
 
 Este estudo mostra que, em vez de criar paletas duplicadas, podemos encontrar um único tom otimizado com um pouco de análise.
 
